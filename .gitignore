@@ -1,0 +1,8 @@
+# ignore data and model blobs
+data/
+models/*.joblib
+
+# ignore virtual env
+venv/
+__pycache__/
+*.pyc

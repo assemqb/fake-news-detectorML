@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>📰 Fake News Detector</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --card: #ffffff;
+      --text: #333333;
+      --primary: #0066cc;
+      --primary-hover: #005bb5;
+      --ok-bg: #e6ffed;
+      --ok-text: #217346;
+      --err-bg: #ffe8e6;
+      --err-text: #a31d1a;
+      --unk-bg: #fff8e1;
+      --unk-text: #8a6d3b;
+      --border: #d1d5db;
+      --shadow: rgba(0,0,0,0.1);
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 10px;
+      box-shadow: 0 4px 12px var(--shadow);
+      max-width: 600px;
+      width: 100%;
+      padding: 2rem;
+    }
+    h1 {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 1.5rem;
+      color: var(--text);
+    }
+    textarea {
+      width: 100%;
+      height: 140px;
+      padding: 1rem;
+      font-size: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      resize: vertical;
+      margin-bottom: 1rem;
+    }
+    button {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--primary);
+      color: #fff;
+      font-size: 1rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: var(--primary-hover);
+    }
+    #result {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      font-size: 1.125rem;
+      text-align: center;
+      border-radius: 6px;
+      display: none;
+    }
+    #result.REAL {
+      background: var(--ok-bg);
+      color: var(--ok-text);
+      display: block;
+    }
+    #result.FAKE {
+      background: var(--err-bg);
+      color: var(--err-text);
+      display: block;
+    }
+    #result.UNKNOWN {
+      background: var(--unk-bg);
+      color: var(--unk-text);
+      display: block;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.875rem;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>📰 Fake News Detector</h1>
+    <textarea id="news" placeholder="Paste the full article text here…"></textarea>
+    <button onclick="check()">Check News</button>
+    <div id="result"></div>
+    <div class="footer">Built with FastAPI &amp; XGBoost</div>
+  </div>
+
+  <script>
+    async function check() {
+      const text = document.getElementById('news').value.trim();
+      const resEl = document.getElementById('result');
+
+      if (!text) {
+        resEl.textContent = "Please enter article text above.";
+        resEl.className = "UNKNOWN";
+        return;
+      }
+
+      resEl.textContent = "Analyzing…";
+      resEl.className = "";
+
+      try {
+        const { label, confidence } = await fetch('/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        }).then(r => r.json());
+
+        // Display "<1% real" for any probability under 1%
+        let pct = confidence * 100;
+        let disp  = pct < 1 
+          ? "<1% real" 
+          : `${pct.toFixed(1)}% real`;
+
+        if (label === "UNKNOWN") {
+          resEl.textContent = 
+            "I couldn't find known words—please paste more text.";
+          resEl.className = "UNKNOWN";
+        } else {
+          resEl.textContent = `${label} (${disp})`;
+          resEl.className = label;
+        }
+      } catch {
+        resEl.textContent = "Error analyzing text.";
+        resEl.className = "UNKNOWN";
+      }
+    }
+  </script>
+</body>
+</html>
